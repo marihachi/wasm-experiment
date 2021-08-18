@@ -11,7 +11,7 @@ export class Wat2Wasm {
 	}
 
 	public generate(buffer: Uint8Array | string): Uint8Array {
-		const wasmModule = this.wabt.parseWat('result.wasm', buffer);
+		const wasmModule = this.wabt.parseWat('a.wat', buffer);
 		wasmModule.validate();
 		const result = wasmModule.toBinary({ });
 		return result.buffer;
