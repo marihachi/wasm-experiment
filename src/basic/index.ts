@@ -1,16 +1,32 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { Wat2Wasm } from '../wat2wasm';
+import IR from 'binaryen';
 
 async function entry() {
 
-	// load .wat file
-	const wat = await fs.readFile(path.resolve(__dirname, '../../src/basic/basic.wat'));
+	const ir = new IR.Module();
 
-	const wat2Wasm = await Wat2Wasm.new();
-	const wasm = wat2Wasm.generate(wat);
+	ir.addFunctionImport('fn', 'basic', 'fn', IR.createType([]), IR.none);
+	const blockRef = ir.block(`run.children`, [
+		ir.call('fn', [], IR.none),
+		ir.local.set(2, ir.i32.add(ir.local.get(0, IR.i32), ir.local.get(1, IR.i32))),
+		ir.return(ir.local.get(2, IR.i32))
+	]);
+	ir.addFunction('run', IR.createType([IR.i32, IR.i32]), IR.i32, [IR.i32], blockRef);
+	ir.addFunctionExport('run', 'run');
 
-	// write .wasm file
+	if (!ir.validate()) {
+		throw new Error('validation error');
+	}
+
+	ir.optimize();
+
+	// wat
+	const wat = ir.emitText();
+	await fs.writeFile(path.resolve(__dirname, './basic.wat'), wat);
+
+	// wasm
+	const wasm = ir.emitBinary();
 	await fs.writeFile(path.resolve(__dirname, './basic.wasm'), wasm);
 
 	// imported data
@@ -29,6 +45,7 @@ async function entry() {
 	if (typeof instance.exports.run == 'function') {
 		console.log('run:', instance.exports.run(1, 2));
 	}
+
 }
 
 entry()
