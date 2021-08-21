@@ -15,7 +15,7 @@ async function entry() {
 
 	// imported data
 	const importObject: WebAssembly.Imports = {
-		imports: {
+		basic: {
 			fn: () => {
 				console.log('fn called');
 			}
